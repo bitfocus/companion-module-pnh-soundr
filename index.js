@@ -20,6 +20,7 @@ class instance extends instance_skel {
 
 		this.actions() // export actions
 		this.variables()
+		this.initPresets()
 		this.status(this.STATUS_WARNING, 'Connecting')
 		this.isReady = false
 		this.vardefs = []
@@ -182,6 +183,45 @@ class instance extends instance_skel {
 				],
 			},
 		})
+	}
+
+	initPresets() {
+		var presets = []
+
+		presets.push({
+			category: 'Group Controls',
+			label: '',
+			bank: {
+				style: 'text',
+				text: 'Stop all sounds',
+				size: '18',
+				color: '16777215',
+			},
+			actions: [
+				{
+					action: 'stopAll'
+				},
+			]
+		})
+
+		presets.push({
+			category: 'Group Controls',
+			label: '',
+			bank: {
+				style: 'text',
+				text: 'Buffer all sounds',
+				size: '18',
+				color: '16777215',
+			},
+			actions: [
+				{
+					action: 'bufferAll'
+				},
+			]
+		})
+
+
+		this.setPresetDefinitions(presets)
 	}
 
 	config_fields() {
