@@ -1,0 +1,31 @@
+{
+  "name": "pnh-soundr",
+  "version": "1.0.0",
+  "api_version": "1.0.0",
+  "keywords": [
+    "Software",
+    "Soundr",
+    "Sound"
+  ],
+  "manufacturer": "[Project-Name-Here]",
+  "product": "Soundr",
+  "shortname": "soundr",
+  "description": "Module to control Soundr",
+  "homepage": "example.com",
+  "bugs": {
+    "url": "example.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+example.com"
+  },
+  "main": "index.js",
+  "author": "TheGreydiamond <software@thegreydiamond.de>",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "license": "LGPL-3.0",
+  "dependencies": {
+    "bent": "^7.3.12"
+  }
+}
