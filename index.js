@@ -36,7 +36,7 @@ class instance extends instance_skel {
 		this.variables()
 		this.intervalId = setInterval(function handleInterval() {
 			tThis.log('info', 'Updating variables')
-			console.log("!!!!!!!!!!!!!!!!!!!!!!! UPDATEINGINI")
+			// console.log("!!!!!!!!!!!!!!!!!!!!!!! UPDATEINGINI")
 			tThis.updateVariables()
 		}, this.config.refreshTime)
 	}
@@ -140,6 +140,19 @@ class instance extends instance_skel {
 			bufferAll: {
 				label: 'Buffer all sounds',
 			},
+			stop: {
+				label: 'Stop sound',
+				options: [
+					{
+						type: 'number',
+						label: 'Sound ID',
+						id: 'id',
+						min: 0,
+						required: true,
+						tooltip: 'The ID of the sound to stop',
+					}
+				]
+			}, 
 			play: {
 				label: 'Play sound',
 				options: [
@@ -161,7 +174,7 @@ class instance extends instance_skel {
 					},
 					{
 						type: 'number',
-						label: 'vanityId',
+						label: 'Vanity Id / Nickname',
 						id: 'vanityId',
 						default: -1,
 						tooltip: 'The vanityId of the sound, -1 to disable it.',
@@ -237,6 +250,14 @@ class instance extends instance_skel {
 				return
 			} else if (action.action == 'bufferAll') {
 				bent('GET', 200, 'http://' + tTemp.config.host + ':' + tTemp.config['port'] + '/v1/bufferAll', 'json')().then(
+					function handleList(body) {
+						tTemp.status(tTemp.STATUS_OK, 'Connected')
+						tTemp.log('Connected to ' + tTemp.config.host)
+						tTemp.log(body)
+					}
+				)
+			}  else if (action.action == 'stop') {
+				bent('GET', 200, 'http://' + tTemp.config.host + ':' + tTemp.config['port'] + '/v1/stop?id=' + action.options["id"], 'json')().then(
 					function handleList(body) {
 						tTemp.status(tTemp.STATUS_OK, 'Connected')
 						tTemp.log('Connected to ' + tTemp.config.host)
