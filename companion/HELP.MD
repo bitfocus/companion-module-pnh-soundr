@@ -32,8 +32,8 @@ There is a wide variety of actions supported. The best way to discover them is h
 
 
 ### Other information (Disclaimer)
-This information is mentioned on the openCountdown git page, however I would like to reiterate here.
-Please do not use openCountdown for military or life-depending applications. Please also refrain from using openCountdown for launching rockets.
+This information is mentioned on the soundr git page, however I would like to reiterate here.
+Please do not use soundr for military or life-depending applications.
 
 ## Getting further help
 If something does not work or you need further help, either raise an issue or send me an E-Mail. I will try to help you as soon as possible.

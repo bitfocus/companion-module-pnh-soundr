@@ -1,6 +1,24 @@
 {
   "name": "pnh-soundr",
+<<<<<<< HEAD
   "version": "1.0.0",
+=======
+  "version": "1.0.2",
+  "api_version": "1.0.0",
+  "keywords": [
+    "Software",
+    "Soundr",
+    "Sound"
+  ],
+  "manufacturer": "[Project-Name-Here]",
+  "product": "Soundr",
+  "shortname": "soundr",
+  "description": "Module to control Soundr",
+  "homepage": "example.com",
+  "bugs": {
+    "url": "example.com"
+  },
+>>>>>>> 2e0aec79605164d580acab56eca6ab4b28f47deb
   "repository": {
     "type": "git",
     "url": "git+github.com/bitfocus/companion-module-pnh-soundr.git"
