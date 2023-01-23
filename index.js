@@ -49,18 +49,6 @@ class SoundrInstance extends InstanceBase {
 		}
 	}
 
-	checkConnection() {
-		if (this.isReady) {
-			bent('GET', 200, 'http://' + this.config.host + ':' + this.config['port'] + '/v1/list', 'json')()
-				.then(function handleList(body) {
-					tThis.changeStatus(InstanceStatus.Ok)
-				})
-				.catch(function handleError(err) {
-					tThis.updateStatus(InstanceStatus.ConnectionFailure)
-				})
-		}
-	}
-
 	updateVariables() {
 		const tThis = this
 		if (this.isReady) {
