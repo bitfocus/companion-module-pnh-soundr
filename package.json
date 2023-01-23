@@ -1,31 +1,20 @@
 {
   "name": "pnh-soundr",
   "version": "1.0.0",
-  "api_version": "1.0.0",
-  "keywords": [
-    "Software",
-    "Soundr",
-    "Sound"
-  ],
-  "manufacturer": "[Project-Name-Here]",
-  "product": "Soundr",
-  "shortname": "soundr",
-  "description": "Module to control Soundr",
-  "homepage": "example.com",
-  "bugs": {
-    "url": "example.com"
-  },
   "repository": {
     "type": "git",
-    "url": "git+example.com"
+    "url": "git+github.com/bitfocus/companion-module-pnh-soundr.git"
   },
   "main": "index.js",
-  "author": "TheGreydiamond <software@thegreydiamond.de>",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "license": "LGPL-3.0",
   "dependencies": {
+    "@companion-module/base": "~1.0.0",
     "bent": "^7.3.12"
+  },
+  "devDependencies": {
+    "@companion-module/tools": "^0.5.1"
   }
 }

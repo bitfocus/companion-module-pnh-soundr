@@ -1,43 +1,28 @@
-const instance_skel = require('../../instance_skel')
 const bent = require('bent')
+const { InstanceStatus, InstanceBase, runEntrypoint } = require('@companion-module/base')
+const UpgradeScripts = require('./upgrades')
 
-class instance extends instance_skel {
-	/**
-	 * Create an instance of the module
-	 *
-	 * @param {EventEmitter} system - the brains of the operation
-	 * @param {string} id - the instance ID
-	 * @param {Object} config - saved user configuration parameters
-	 * @since 1.0.0
-	 */
+class SoundrInstance extends InstanceBase {
 
-	constructor(system, id, config) {
-		super(system, id, config)
+	constructor(internal) {
+		super(internal)
+		this.vardefs = [];
 	}
 
-	init() {
+	async init(config) {
 		const tThis = this
+		this.config = config
+		this.updateStatus(InstanceStatus.Connecting)
 
-		this.actions() // export actions
+		this.log("info", "Exporting actions")
+		this.updateActions() // export actions
 		this.variables()
 		this.initPresets()
-		this.status(this.STATUS_WARNING, 'Connecting')
-		this.isReady = false
-		this.vardefs = []
-		if (this.config.host != undefined) {
-			// this.log("info", 'Connecting to ' + this.config["host"] + ':' + this.config["port"])
-			bent('GET', 200, 'http://' + this.config.host + ':' + this.config['port'] + '/v1/list', 'json')().then(
-				function handleList(body) {
-					tThis.status(tThis.STATUS_OK, 'Connected')
-					tThis.log('Connected to ' + tThis.config.host)
-					tThis.isReady = true
-				}
-			)
-		}
-		this.variables()
+
+		this.isReady = true
+
 		this.intervalId = setInterval(function handleInterval() {
 			tThis.log('info', 'Updating variables')
-			// console.log("!!!!!!!!!!!!!!!!!!!!!!! UPDATEINGINI")
 			tThis.updateVariables()
 		}, this.config.refreshTime)
 	}
@@ -52,8 +37,8 @@ class instance extends instance_skel {
 				'json'
 			)()
 			const namesAndValues = []
-			tTemp.status(this.STATUS_OK, 'Connected')
-			tTemp.log('Connected to ' + this.config.host)
+			tTemp.updateStatus(InstanceStatus.Ok)
+			tTemp.log("info", 'Connected to ' + this.config.host)
 			tTemp.log(body)
 			for (var i = 0; i < body.length; i++) {
 				namesAndValues.push({ id: body[i][1], label: body[i][0] })
@@ -68,10 +53,10 @@ class instance extends instance_skel {
 		if (this.isReady) {
 			bent('GET', 200, 'http://' + this.config.host + ':' + this.config['port'] + '/v1/list', 'json')()
 				.then(function handleList(body) {
-					tThis.status(tThis.STATUS_OK, 'Connected')
+					tThis.changeStatus(InstanceStatus.Ok)
 				})
 				.catch(function handleError(err) {
-					tThis.status(tThis.STATUS_ERROR, 'Not connected (Failed)')
+					tThis.updateStatus(InstanceStatus.ConnectionFailure)
 				})
 		}
 	}
@@ -79,23 +64,29 @@ class instance extends instance_skel {
 	updateVariables() {
 		const tThis = this
 		if (this.isReady) {
+			this.log('info', 'Updating variables')
+			
 			this.vardefs.forEach(function handleList(item) {
-				if (item.name != "amount_sounds_currently_playing") {
-					let idT = item.name.split("_")[1]
+				if (item.variableId != "amount_sounds_currently_playing") {
+					let idT = item.variableId.split("_")[1]
+					console.log("debug", "Checking ID " + idT + " remaining time")
 					bent('GET', 200, 'http://' + tThis.config.host + ':' + tThis.config['port'] + '/v1/remaining?id=' + idT, 'json')().then(
 						function handleList(body) {
-							tThis.status(tThis.STATUS_OK, 'Connected')
-							tThis.setVariable('sound_' + body.id + "_remaining_time", body.RemaningSec)
-							// console.log(Object.keys(body).length)
+							let updates = {}
+							tThis.updateStatus(InstanceStatus.Ok)
+							//tThis.setVariableValues({('sound_' + body.id + "_remaining_time") = body.RemaningSec})
+							updates["sound_" + body.id + "_remaining_time"] = String(body.RemaningSec)
+							tThis.setVariableValues(updates)
 						}
 					)
 				}
 			})
 			bent('GET', 200, 'http://' + this.config.host + ':' + this.config['port'] + '/v1/current', 'json')().then(
 				function handleList(body) {
-					tThis.status(tThis.STATUS_OK, 'Connected')
-					tThis.setVariable('amount_sounds_currently_playing', String(Object.keys(body).length))
-					// console.log(Object.keys(body).length)
+					tThis.updateStatus(InstanceStatus.Ok)
+					let updates = {}
+					updates["amount_sounds_currently_playing"] = String(Object.keys(body).length)
+					tThis.setVariableValues(updates)
 				}
 			)
 		}
@@ -103,46 +94,56 @@ class instance extends instance_skel {
 
 	variables() {
 		const tThis = this
-		try {
-			const variables = []
-			if (this.config.soundsToMonitor != undefined && this.config.soundsToMonitor.length > 0) {
-				var listy = (this.config.soundsToMonitor + ",").split(",")
-				listy.forEach(function handleList(item) {
-					variables.push({
-						label: 'Sound ' + item + ' remaining time',
-						name: 'sound_' + item + '_remaining_time'
-					})
+		const VarDefs = []
+		if (this.config.soundsToMonitor != undefined && this.config.soundsToMonitor.length > 0) {
+			var listy = (this.config.soundsToMonitor + ",").split(",")
+			listy.forEach(function handleList(item) {
+				VarDefs.push({
+					name: 'Sound ' + item + ' remaining time',
+					variableId: 'sound_' + item + '_remaining_time'
 				})
-			}
-			console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!" + variables)
-
-			variables.push({
-				name: 'amount_sounds_currently_playing',
-				label: 'Songs currently playing',
 			})
-			this.setVariableDefinitions(variables)
-			variables.forEach(function handleList(item) {
-				tThis.setVariable(item.name, '0')
-			})
-			this.vardefs = variables
-			// this.setVariable('amount_sounds_currently_playing', '0')
-		} catch (error) {
-			console.error(error)
 		}
+
+		VarDefs.push({
+			name: 'Songs currently playing',
+			variableId: 'amount_sounds_currently_playing',
+		})
+		this.vardefs = VarDefs
+
+		this.setVariableDefinitions(VarDefs)
+
+		const newVariables = {}
+
+		VarDefs.forEach(function handleList(item) {
+			newVariables[item.variableId] = '0'
+		})
+		this.setVariableValues(newVariables)
+
+
 
 	}
 
-	async actions() {
+	async updateActions() {
 		const optis = await this.retrieveSound()
-		this.setActions({
+		this.setActionDefinitions({
 			stopAll: {
-				label: 'Stop all sounds',
+				name: 'Stop all sounds',
+				callback: async (action) => {
+					this.log('info', 'Stopping all sounds')
+					bent('GET', 200, 'http://' + this.config.host + ':' + this.config['port'] + '/v1/stopAll', 'json')()
+				},
+				options: []
 			},
 			bufferAll: {
-				label: 'Buffer all sounds',
+				name: 'Buffer all sounds',
+				callback: (action) => {
+					bent('GET', 200, 'http://' + this.config.host + ':' + this.config['port'] + '/v1/bufferAll', 'json')()
+				},
+				options: []
 			},
 			stop: {
-				label: 'Stop sound',
+				name: 'Stop sound',
 				options: [
 					{
 						type: 'number',
@@ -152,10 +153,14 @@ class instance extends instance_skel {
 						required: true,
 						tooltip: 'The ID of the sound to stop',
 					}
-				]
-			}, 
+				],
+				callback: (action) => {
+					this.log('info', 'Stopping sound ' + action.options.id)
+					bent('GET', 200, 'http://' + this.config.host + ':' + this.config['port'] + '/v1/stop?id=' + action.options.id, 'json')()
+				}
+			},
 			play: {
-				label: 'Play sound',
+				name: 'Play sound',
 				options: [
 					{
 						type: 'dropdown',
@@ -164,6 +169,7 @@ class instance extends instance_skel {
 						default: 0,
 						tooltip: 'Please select a sound to be played',
 						choices: optis,
+						//choices: [],
 						minChoicesForSearch: 0,
 					},
 					{
@@ -181,50 +187,76 @@ class instance extends instance_skel {
 						tooltip: 'The vanityId of the sound, -1 to disable it.',
 					}
 				],
+				callback: (action) => {
+					this.log('info', 'Playing sound ' + action.options.soundDropdown + " on http://" + this.config.host + ':' + this.config['port'] + '/v1/play?file=' + action.options.soundDropdown + '&loop=' + action.options.soundLoop + '&vanityId=' + action.options.vanityId)
+					bent('GET', 200, 'http://' + this.config.host + ':' + this.config['port'] + '/v1/play?file=' + action.options.soundDropdown + '&loop=' + action.options.soundLoop + '&vanityId=' + action.options.vanityId, 'json')()
+				}
 			},
 		})
 	}
 
 	initPresets() {
-		var presets = []
+		var presets = {}
 
-		presets.push({
+		presets ["stop_all"] = {
 			category: 'Group Controls',
 			label: '',
-			bank: {
+			type: "button",
+			name: "Stop all sounds",
+			style: {
 				style: 'text',
 				text: 'Stop all sounds',
-				size: '18',
+				size: 'auto',
 				color: '16777215',
 			},
-			actions: [
+			steps: [
 				{
-					action: 'stopAll'
+					down: [
+						{
+							// add an action on down press
+							actionId: 'stopAll',
+							options: {
+								
+							},
+						},
+					],
 				},
-			]
-		})
+			],
+			feedbacks: []
+		}
 
-		presets.push({
+		presets["buffer_all"] = {
 			category: 'Group Controls',
+			type: "button",
+			name: "Buffer all sounds",
 			label: '',
-			bank: {
+			style: {
 				style: 'text',
 				text: 'Buffer all sounds',
-				size: '18',
+				size: 'auto',
 				color: '16777215',
 			},
-			actions: [
+			steps: [
 				{
-					action: 'bufferAll'
+					down: [
+						{
+							// add an action on down press
+							actionId: 'bufferAll',
+							options: {
+								
+							},
+						},
+					],
 				},
-			]
-		})
+			],
+			feedbacks: []
+		}
 
 
 		this.setPresetDefinitions(presets)
 	}
 
-	config_fields() {
+	getConfigFields() {
 		return [
 			{
 				type: 'textinput',
@@ -257,92 +289,34 @@ class instance extends instance_skel {
 		]
 	}
 
-	updateConfig(config) {
+	async configUpdated(config) {
 		tThis = this
 		this.config = config
-		const tThis = this
 		this.isReady = false
-		this.status(this.STATUS_WARNING, 'Connecting')
+		this.log('info', 'Config updated, connecting to ' + this.config.host + ':' + this.config.port)
+		this.updateStatus(InstanceStatus.Connecting)
 		if (this.config.host != undefined && this.config.port != undefined) {
 			this.log('info', 'Connecting to http://' + this.config['host'] + ':' + this.config['port'])
 			bent('GET', 200, 'http://' + this.config.host + ':' + this.config['port'] + '/v1/list', 'json')().then(
 				function handleList(body) {
-					tThis.status(tThis.STATUS_OK, 'Connected')
+					tThis.updateStatus(InstanceStatus.Ok)
 					tThis.log('Connected to ' + this.config.host)
 					tThis.log(body)
 					tThis.isReady = true
 				}
-			)
+			).catch(function handleFail(reason) {
+				tThis.updateStatus(InstanceStatus.ConnectionFailure)
+				tThis.log('error', 'Failed to connect to ' + this.config.host + ' - ' + reason)
+			})
+		} else {
+			this.updateStatus(InstanceStatus.BadConfig)
 		}
 	}
 
-	action(action) {
-		const tTemp = this
-		if (this.isReady) {
-			if (action.action == 'stopAll') {
-				bent('GET', 200, 'http://' + tTemp.config.host + ':' + tTemp.config['port'] + '/v1/stopAll', 'json')().then(
-					function handleList(body) {
-						tTemp.status(tTemp.STATUS_OK, 'Connected')
-						tTemp.log('Connected to ' + tTemp.config.host)
-						tTemp.log(body)
-					}
-				)
-				return
-			} else if (action.action == 'bufferAll') {
-				bent('GET', 200, 'http://' + tTemp.config.host + ':' + tTemp.config['port'] + '/v1/bufferAll', 'json')().then(
-					function handleList(body) {
-						tTemp.status(tTemp.STATUS_OK, 'Connected')
-						tTemp.log('Connected to ' + tTemp.config.host)
-						tTemp.log(body)
-					}
-				)
-			}  else if (action.action == 'stop') {
-				bent('GET', 200, 'http://' + tTemp.config.host + ':' + tTemp.config['port'] + '/v1/stop?id=' + action.options["id"], 'json')().then(
-					function handleList(body) {
-						tTemp.status(tTemp.STATUS_OK, 'Connected')
-						tTemp.log('Connected to ' + tTemp.config.host)
-						tTemp.log(body)
-					}
-				)
-			} else if (action.action == 'play') {
-				let appendix = ""
-				console.log(action.options["vanityId"])
-				if (action.options["vanityId"] != -1 && action.options["vanityId"] != undefined) {
-					appendix = "&id=" + action.options["vanityId"]
-				}
-				try {
-					console.log("????????" + appendix)
-					var url = 'http://' +
-						this.config.host +
-						':' +
-						this.config['port'] +
-						'/v1/play?file=' +
-						action.options['soundDropdown'] +
-						'&loop=' +
-						action.options['soundLoop'] + appendix
-					console.log("!!!!!!!!!!" + url)
-					bent(
-						'GET',
-						200,
-						url,
-						'json'
-					)().then(function handleList(body) {
-						tTemp.status(tTemp.STATUS_OK, 'Connected')
-						tTemp.log('Connected to ' + tTemp.config.host)
-						tTemp.log(body)
-					})
-				} catch (error) {
-					console.log(error)
-				}
-
-			}
-			this.updateVariables()
-		}
-	}
-
-	destroy() {
+	async destroy() {
 		clearInterval(this.intervalId)
 		this.debug('destroy')
 	}
 }
-exports = module.exports = instance
+
+runEntrypoint(SoundrInstance, UpgradeScripts)
