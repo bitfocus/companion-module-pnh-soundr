@@ -3,7 +3,7 @@
 	"name": "pnh-soundr",
 	"shortname": "soundr",
 	"description": "Module to control Soundr",
-	"version": "2.0.0",
+	"version": "2.0.2",
 	"license": "LGPL-3.0",
 	"repository": "git+github.com/bitfocus/companion-module-pnh-soundr.git",
 	"bugs": "https://github.com/bitfocus/companion-module-pnh-soundr/issues",
