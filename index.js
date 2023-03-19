@@ -176,8 +176,8 @@ class SoundrInstance extends InstanceBase {
 					}
 				],
 				callback: (action) => {
-					this.log('info', 'Playing sound ' + action.options.soundDropdown + " on http://" + this.config.host + ':' + this.config['port'] + '/v1/play?file=' + action.options.soundDropdown + '&loop=' + action.options.soundLoop + '&vanityId=' + action.options.vanityId)
-					bent('GET', 200, 'http://' + this.config.host + ':' + this.config['port'] + '/v1/play?file=' + action.options.soundDropdown + '&loop=' + action.options.soundLoop + '&vanityId=' + action.options.vanityId, 'json')()
+					this.log('info', 'Playing sound ' + action.options.soundDropdown + " on http://" + this.config.host + ':' + this.config['port'] + '/v1/play?file=' + action.options.soundDropdown + '&loop=' + action.options.soundLoop + '&id=' + action.options.vanityId)
+					bent('GET', 200, 'http://' + this.config.host + ':' + this.config['port'] + '/v1/play?file=' + action.options.soundDropdown + '&loop=' + action.options.soundLoop + '&id=' + action.options.vanityId, 'json')()
 				}
 			},
 		})
